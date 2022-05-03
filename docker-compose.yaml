@@ -1,0 +1,51 @@
+version: '3'
+
+volumes:
+  mysql-database:
+    driver: local
+  my_app_symfony:
+    external: true
+
+services:
+  app:
+    container_name: my_app
+    build: ./docker
+    ports:
+      - 8901:80
+    volumes:
+      - my_app_symfony:/var/www/html
+      - ./docker/php/php.ini:/usr/local/etc/php/php.ini
+      - ./docker/apache/my_app.conf:/etc/apache2/sites-enabled/my_app.conf
+    depends_on:
+      - mysql
+    environment:
+      DATABASE_URL: "mysql://root:root@mysql/app_db"
+      DATABASE_SERVER_VERSION: 10
+
+  mysql:
+    image: mysql:5.7
+    container_name: my_app_app_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: $DB_ROOT_PASSWORD
+      MYSQL_DATABASE: $DB_NAME
+      TZ: 'Asia/Tokyo'
+    command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    ports:
+      - 13306:3306
+    platform: linux/x86_64
+    volumes:
+      - mysql-database:/var/lib/mysql
+
+  phpmyadmin:
+      image: phpmyadmin/phpmyadmin
+      environment:
+          - PMA_ARBITRARY=1
+          - PMA_HOST=mysql
+          - PMA_USER=root
+          - PMA_PASSWORD=$DB_ROOT_PASSWORD
+      links:
+          - mysql
+      ports:
+          - 8902:80
+      volumes:
+          - /sessions
